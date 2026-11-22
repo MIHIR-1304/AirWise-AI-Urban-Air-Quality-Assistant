@@ -12,7 +12,8 @@ import {
 } from '../types';
 
 const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL;
+  const metaEnv = (import.meta as unknown as { env?: Record<string, string> })?.env;
+  const envUrl = metaEnv?.VITE_API_URL;
   if (!envUrl) return '/api';
   const cleanUrl = envUrl.trim().replace(/\/$/, '');
   const withProtocol = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')
