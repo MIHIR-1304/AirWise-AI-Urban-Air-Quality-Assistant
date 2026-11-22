@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Profile;
 
 import javax.sql.DataSource;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Production DataSource configuration.
@@ -48,18 +50,27 @@ public class DataSourceConfig {
                             : url;
                     URI uri = new URI(uriString);
 
-                    if (uri.getUserInfo() != null && (username == null || username.isBlank())) {
+                    // Always extract credentials from cloud connection URL if present
+                    if (uri.getUserInfo() != null && !uri.getUserInfo().isBlank()) {
                         String[] userInfo = uri.getUserInfo().split(":", 2);
-                        username = userInfo[0];
-                        if (userInfo.length > 1) {
-                            password = userInfo[1];
+                        String extractedUser = URLDecoder.decode(userInfo[0], StandardCharsets.UTF_8);
+                        String extractedPass = userInfo.length > 1
+                                ? URLDecoder.decode(userInfo[1], StandardCharsets.UTF_8)
+                                : null;
+
+                        if (extractedUser != null && !extractedUser.isBlank()) {
+                            username = extractedUser;
+                        }
+                        if (extractedPass != null && !extractedPass.isBlank()) {
+                            password = extractedPass;
                         }
                     }
 
                     int port = uri.getPort() != -1 ? uri.getPort() : 5432;
                     String path = uri.getPath();
                     url = "jdbc:postgresql://" + uri.getHost() + ":" + port + path;
-                    log.info("Normalized cloud database URL for JDBC: jdbc:postgresql://{}:{}{}", uri.getHost(), port, path);
+                    log.info("Normalized cloud database URL for JDBC: jdbc:postgresql://{}:{}{}, user: {}",
+                            uri.getHost(), port, path, username);
                 } catch (Exception e) {
                     log.warn("Could not parse cloud database URI; prepending 'jdbc:': {}", e.getMessage());
                     if (!url.startsWith("jdbc:")) {
