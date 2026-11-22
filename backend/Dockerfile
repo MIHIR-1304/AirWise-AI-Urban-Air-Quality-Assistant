@@ -1,12 +1,23 @@
-# Multi-stage / Pre-built Docker build for AirWise AI Spring Boot Backend
+# Multi-stage Docker build for AirWise AI Spring Boot Backend
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS build
+WORKDIR /app
+
+# Cache dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline -B || true
+
+# Build production jar
+COPY src ./src
+RUN mvn clean package -DskipTests -B
+
+# Final runtime stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Non-root user for security
 RUN addgroup -S airwise && adduser -S airwise -G airwise
 USER airwise
 
-COPY target/airwise-backend-*.jar app.jar
+COPY --from=build /app/target/airwise-backend-*.jar app.jar
 
 EXPOSE 8080
 

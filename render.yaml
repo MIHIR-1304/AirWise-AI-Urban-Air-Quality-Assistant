@@ -1,0 +1,48 @@
+services:
+  # 01. Spring Boot Backend Web Service
+  - type: web
+    name: airwise-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: airwise-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /actuator/health
+
+  # 02. React Frontend Static Site
+  - type: web
+    name: airwise-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    plan: free
+    region: oregon
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: airwise-backend
+          property: host
+
+databases:
+  # 03. Managed PostgreSQL Database
+  - name: airwise-db
+    plan: free
+    region: oregon
+    databaseName: airwisedb
+    user: airwise
