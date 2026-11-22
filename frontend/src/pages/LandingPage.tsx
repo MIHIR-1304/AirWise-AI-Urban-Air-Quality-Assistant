@@ -118,20 +118,27 @@ export const LandingPage: React.FC = () => {
 
               {/* Autocomplete Dropdown */}
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-hover border border-charcoal-100 p-2 z-30">
-                  {searchResults.slice(0, 5).map((city) => (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-hover border border-charcoal-100 p-2 z-30 divide-y divide-charcoal-100/30 max-h-60 overflow-y-auto">
+                  {searchResults.slice(0, 6).map((city) => (
                     <button
-                      key={city.id}
+                      key={`${city.name}-${city.latitude}-${city.longitude}`}
                       onClick={() => {
                         setCity(city);
                         setSearchQuery('');
                         setSearchResults([]);
                         navigate('/dashboard');
                       }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-sand-100 rounded-lg transition-colors flex items-center justify-between"
+                      className="w-full text-left px-3 py-2.5 text-xs hover:bg-sand-100 rounded-lg transition-colors flex items-center justify-between group"
                     >
-                      <span className="font-medium text-charcoal">{city.name}</span>
-                      <span className="font-mono text-[10px] text-charcoal-400">{city.country}</span>
+                      <div>
+                        <span className="font-semibold text-charcoal group-hover:text-forest-muted block">{city.name}</span>
+                        <span className="font-mono text-[10px] text-charcoal-400">
+                          {city.admin1 ? `${city.admin1}, ${city.country}` : city.country}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-mono text-charcoal-300">
+                        {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
+                      </span>
                     </button>
                   ))}
                 </div>

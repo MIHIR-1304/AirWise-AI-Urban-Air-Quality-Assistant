@@ -144,26 +144,80 @@ export const api = {
     return generateClientFallbackAirQuality(city, lat || 22.8046, lon || 86.2029);
   },
 
-  // Location search
+  // Location search (Dual-pipeline: Direct Browser Geocoding + Backend Resilient Fallback)
   async searchLocations(query: string): Promise<CitySearchResult[]> {
-    try {
-      const res = await fetch(`${API_BASE_URL}/locations/search?query=${encodeURIComponent(query)}`);
-      if (res.ok) return await res.json();
-    } catch (e) {
-      console.warn('Location search fallback', e);
-    }
-    return [
-      { id: 1, name: 'New Delhi', country: 'India', admin1: 'Delhi', latitude: 28.6139, longitude: 77.2090 },
-      { id: 2, name: 'Mumbai', country: 'India', admin1: 'Maharashtra', latitude: 19.0760, longitude: 72.8777 },
-      { id: 3, name: 'Beijing', country: 'China', admin1: 'Beijing', latitude: 39.9042, longitude: 116.4074 },
-      { id: 4, name: 'London', country: 'United Kingdom', admin1: 'England', latitude: 51.5074, longitude: -0.1278 },
-      { id: 5, name: 'New York', country: 'United States', admin1: 'New York', latitude: 40.7128, longitude: -74.0060 },
-      { id: 6, name: 'Tokyo', country: 'Japan', admin1: 'Tokyo', latitude: 35.6762, longitude: 139.6503 },
-      { id: 7, name: 'Paris', country: 'France', admin1: 'Île-de-France', latitude: 48.8566, longitude: 2.3522 },
-      { id: 8, name: 'Lahore', country: 'Pakistan', admin1: 'Punjab', latitude: 31.5204, longitude: 74.3587 },
-      { id: 9, name: 'Bangkok', country: 'Thailand', admin1: 'Bangkok', latitude: 13.7563, longitude: 100.5018 },
-      { id: 10, name: 'Los Angeles', country: 'United States', admin1: 'California', latitude: 34.0522, longitude: -118.2437 }
+    const defaultList: CitySearchResult[] = [
+      { id: 1269300, name: 'Jamshedpur', country: 'India', admin1: 'Jharkhand', latitude: 22.8046, longitude: 86.2029 },
+      { id: 1258526, name: 'Ranchi', country: 'India', admin1: 'Jharkhand', latitude: 23.3441, longitude: 85.3096 },
+      { id: 1275339, name: 'Kolkata', country: 'India', admin1: 'West Bengal', latitude: 22.5726, longitude: 88.3639 },
+      { id: 1261481, name: 'New Delhi', country: 'India', admin1: 'Delhi', latitude: 28.6139, longitude: 77.2090 },
+      { id: 1275339, name: 'Mumbai', country: 'India', admin1: 'Maharashtra', latitude: 19.0760, longitude: 72.8777 },
+      { id: 1277333, name: 'Bengaluru', country: 'India', admin1: 'Karnataka', latitude: 12.9716, longitude: 77.5946 },
+      { id: 1269843, name: 'Hyderabad', country: 'India', admin1: 'Telangana', latitude: 17.3850, longitude: 78.4867 },
+      { id: 1264527, name: 'Chennai', country: 'India', admin1: 'Tamil Nadu', latitude: 13.0827, longitude: 80.2707 },
+      { id: 1259229, name: 'Pune', country: 'India', admin1: 'Maharashtra', latitude: 18.5204, longitude: 73.8567 },
+      { id: 1279233, name: 'Ahmedabad', country: 'India', admin1: 'Gujarat', latitude: 23.0225, longitude: 72.5714 },
+      { id: 1260086, name: 'Patna', country: 'India', admin1: 'Bihar', latitude: 25.5941, longitude: 85.1376 },
+      { id: 2643743, name: 'London', country: 'United Kingdom', admin1: 'England', latitude: 51.5074, longitude: -0.1278 },
+      { id: 5128581, name: 'New York', country: 'United States', admin1: 'New York', latitude: 40.7128, longitude: -74.0060 },
+      { id: 1850147, name: 'Tokyo', country: 'Japan', admin1: 'Tokyo', latitude: 35.6762, longitude: 139.6503 },
+      { id: 1816670, name: 'Beijing', country: 'China', admin1: 'Beijing', latitude: 39.9042, longitude: 116.4074 },
+      { id: 2988507, name: 'Paris', country: 'France', admin1: 'Île-de-France', latitude: 48.8566, longitude: 2.3522 },
+      { id: 1172451, name: 'Lahore', country: 'Pakistan', admin1: 'Punjab', latitude: 31.5204, longitude: 74.3587 },
+      { id: 1609350, name: 'Bangkok', country: 'Thailand', admin1: 'Bangkok', latitude: 13.7563, longitude: 100.5018 },
+      { id: 5368361, name: 'Los Angeles', country: 'United States', admin1: 'California', latitude: 34.0522, longitude: -118.2437 }
     ];
+
+    if (!query || query.trim().length < 2) {
+      return defaultList;
+    }
+
+    const trimmed = query.trim();
+
+    // 1. Direct real-time browser geocoding via Open-Meteo API (worldwide coverage)
+    try {
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=10&language=en&format=json`;
+      const geoRes = await fetch(geoUrl);
+      if (geoRes.ok) {
+        const data = await geoRes.json();
+        if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+          return data.results.map((r: { id: number; name: string; country?: string; admin1?: string; admin2?: string; latitude: number; longitude: number; timezone?: string }) => ({
+            id: r.id,
+            name: r.name,
+            country: r.country || '',
+            admin1: r.admin1 || r.admin2 || '',
+            latitude: r.latitude,
+            longitude: r.longitude,
+            timezone: r.timezone
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Client-side geocoding unavailable, trying backend', e);
+    }
+
+    // 2. Query AirWise Backend Service
+    try {
+      const res = await fetch(`${API_BASE_URL}/locations/search?query=${encodeURIComponent(trimmed)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend location search fallback', e);
+    }
+
+    // 3. Query matching on curated local directory
+    const q = trimmed.toLowerCase();
+    const matched = defaultList.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.country && c.country.toLowerCase().includes(q)) ||
+      (c.admin1 && c.admin1.toLowerCase().includes(q))
+    );
+
+    return matched;
   },
 
   // AI Assistant
