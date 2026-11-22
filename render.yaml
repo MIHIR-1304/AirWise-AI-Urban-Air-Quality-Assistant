@@ -20,14 +20,12 @@ services:
         sync: false
     healthCheckPath: /actuator/health
 
-  # 02. React Frontend Static Site
+  # 02. React Frontend Static Site (Served globally via Render CDN, no region field)
   - type: web
     name: airwise-frontend
     runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
-    plan: free
-    region: oregon
     routes:
       - type: rewrite
         source: /*

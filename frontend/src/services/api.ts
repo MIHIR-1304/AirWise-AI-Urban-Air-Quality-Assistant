@@ -11,9 +11,17 @@ import {
   CommuteComparison
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : '/api';
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) return '/api';
+  const cleanUrl = envUrl.trim().replace(/\/$/, '');
+  const withProtocol = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')
+    ? cleanUrl
+    : `https://${cleanUrl}`;
+  return `${withProtocol}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('airwise_token');
