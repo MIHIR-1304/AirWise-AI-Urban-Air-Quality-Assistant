@@ -81,8 +81,8 @@ export const Navbar: React.FC = () => {
           
           {/* Logo & Brand Identity */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-white border border-charcoal-100/60 p-1.5 shadow-sm group-hover:border-forest-muted transition-colors flex items-center justify-center">
-              <img src="/logo.svg" alt="AirWise Logo" className="w-full h-full object-contain" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-subtle group-hover:scale-105 group-hover:shadow-card transition-all flex items-center justify-center">
+              <img src="/logo.svg" alt="AirWise Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="flex items-center space-x-1.5">

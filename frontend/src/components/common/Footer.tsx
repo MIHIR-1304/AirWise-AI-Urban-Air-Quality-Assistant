@@ -11,8 +11,8 @@ export const Footer: React.FC = () => {
           {/* Brand Vision Column */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-white border border-charcoal-100 p-1 flex items-center justify-center">
-                <img src="/logo.svg" alt="AirWise" className="w-full h-full" />
+              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-subtle flex items-center justify-center">
+                <img src="/logo.svg" alt="AirWise" className="w-full h-full object-cover" />
               </div>
               <span className="font-heading font-bold text-xl tracking-tight text-charcoal">
                 AIRWISE<span className="text-forest-muted">.AI</span>
